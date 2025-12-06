@@ -176,27 +176,35 @@
 
   <script>
     function evaluate() {
-      const prompt = document.getElementById("prompt").value.trim();
-      const answer = document.getElementById("answer").value.trim();
+      var prompt = document.getElementById("prompt").value.trim();
+      var answer = document.getElementById("answer").value.trim();
 
       if (!prompt || !answer) {
         alert("Please fill both the prompt and the AI answer.");
         return;
       }
 
-      const promptWords = new Set(
-        prompt.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/)
-      );
-      const answerWords = new Set(
-        answer.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/)
-      );
+      function getWords(text) {
+        return text
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, " ")
+          .split(/\s+/)
+          .filter(function (w) { return w.length > 0; });
+      }
 
-      let overlap = 0;
-      promptWords.forEach((w) => {
-        if (answerWords.has(w) && w.length > 3) overlap++;
-      });
+      var promptWords = getWords(prompt);
+      var answerWords = getWords(answer);
 
-      const length = answerWords.size;
+      // count overlapping important words
+      var overlap = 0;
+      for (var i = 0; i < promptWords.length; i++) {
+        var w = promptWords[i];
+        if (w.length > 3 && answerWords.indexOf(w) !== -1) {
+          overlap++;
+        }
+      }
+
+      var length = answerWords.length;
 
       function clampScore(x) {
         if (x < 1) return 1;
@@ -204,44 +212,49 @@
         return Math.round(x);
       }
 
-      const accuracy = clampScore(3 + (Math.min(overlap, 5) / 5) * 2);
-      const relevance = clampScore(3 + (Math.min(overlap, 5) / 5) * 2);
-      const clarity = clampScore(length < 15 ? 3 : 4);
-      const completeness = clampScore(length < 20 ? 2 : 4);
-      const safety = 5;
+      var accuracy = clampScore(3 + (Math.min(overlap, 5) / 5) * 2);
+      var relevance = clampScore(3 + (Math.min(overlap, 5) / 5) * 2);
+      var clarity = clampScore(length < 15 ? 3 : 4);
+      var completeness = clampScore(length < 20 ? 2 : 4);
+      var safety = 5;
 
-      const scores = { accuracy, relevance, clarity, completeness, safety };
+      var scores = {
+        accuracy: accuracy,
+        relevance: relevance,
+        clarity: clarity,
+        completeness: completeness,
+        safety: safety
+      };
 
-      const overall =
-        (accuracy + relevance + clarity + completeness + safety) / 5;
+      var overall = (accuracy + relevance + clarity + completeness + safety) / 5;
 
-      let ratingLabel;
+      var ratingLabel;
       if (overall >= 4.5) ratingLabel = "Excellent";
       else if (overall >= 3.5) ratingLabel = "Good";
       else if (overall >= 2.5) ratingLabel = "Fair";
       else ratingLabel = "Poor";
 
-      const feedback = `
-        This is a quick rule-based evaluation. For production systems,
-        you can combine this with human review or model-based evaluators.
-      `;
+      var feedback =
+        "This is a quick rule-based evaluation. For production systems, combine this with human review or model-based evaluators.";
 
-      const scoresDiv = document.getElementById("scores");
-      scoresDiv.innerHTML = "";
-
-      Object.entries(scores).forEach(([key, value]) => {
-        const row = document.createElement("div");
-        row.className = "score-row";
-        row.innerHTML = `
-          <span>${key.charAt(0).toUpperCase() + key.slice(1)}</span>
-          <span>${value} / 5</span>
-        `;
-        scoresDiv.appendChild(row);
-      });
+      // render scores
+      var scoresDiv = document.getElementById("scores");
+      var html = "";
+      for (var key in scores) {
+        if (scores.hasOwnProperty(key)) {
+          var label = key.charAt(0).toUpperCase() + key.slice(1);
+          html +=
+            '<div class="score-row">' +
+            "<span>" + label + "</span>" +
+            "<span>" + scores[key] + " / 5</span>" +
+            "</div>";
+        }
+      }
+      scoresDiv.innerHTML = html;
 
       document.getElementById("overall").textContent = overall.toFixed(2) + " / 5";
       document.getElementById("ratingBadge").textContent = ratingLabel;
-      document.getElementById("feedback").textContent = feedback.trim();
+      document.getElementById("feedback").textContent = feedback;
 
       document.getElementById("results").style.display = "block";
     }
